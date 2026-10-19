@@ -35,7 +35,13 @@ module.exports=async function handler(req,res){
   if(typeof b.email!=='string'||typeof b.password!=='string'||b.email.length>254||b.password.length<8||b.password.length>128)return res.status(400).json({error:'invalid_credentials_format'});
   const r=await auth(b.action==='signup'?'signup':'token?grant_type=password',{email:b.email.trim(),password:b.password});
   const data=await r.json().catch(()=>({}));
-  if(!r.ok)return res.status(401).json({error:b.action==='login'?'invalid_login':'signup_failed'});
+  if(!r.ok){
+   if(b.action==='login')return res.status(401).json({error:'invalid_login'});
+   // Expose only a tightly controlled diagnostic code, never provider messages or credentials.
+   const allowed=new Set(['email_address_invalid','weak_password','email_provider_disabled','signup_disabled','email_exists','over_email_send_rate_limit','over_request_rate_limit','validation_failed']);
+   const code=typeof data.code==='string'&&allowed.has(data.code)?data.code:'signup_failed';
+   return res.status(r.status===429?429:400).json({error:code});
+  }
   if(data.access_token&&data.refresh_token){save(res,data);return res.status(200).json({ok:true,user:{id:data.user?.id,email:data.user?.email}});}
   return res.status(202).json({ok:true,confirmationRequired:true});
  }catch(e){console.error('pds_auth_error',e.message);return res.status(502).json({error:'auth_unavailable'});}
