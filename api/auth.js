@@ -36,7 +36,7 @@ module.exports=async function handler(req,res){
   const r=await auth(b.action==='signup'?'signup':'token?grant_type=password',{email:b.email.trim(),password:b.password});
   const data=await r.json().catch(()=>({}));
   if(!r.ok){
-   if(b.action==='signup')console.warn('signup_status',r.status);
+   if(b.action==='signup')console.warn('signup_status',r.status,'signup_code',typeof data.code==='string'&&/^[a-z_]{1,50}$/.test(data.code)?data.code:'unavailable');
    if(b.action==='login')return res.status(401).json({error:'invalid_login'});
    // Expose only a tightly controlled diagnostic code, never provider messages or credentials.
    const allowed=new Set(['email_address_invalid','weak_password','email_provider_disabled','signup_disabled','email_exists','over_email_send_rate_limit','over_request_rate_limit','validation_failed']);
