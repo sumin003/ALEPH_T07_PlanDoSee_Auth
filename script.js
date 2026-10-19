@@ -44,7 +44,7 @@ function render(){
       <h3>${esc(p.title)}</h3>
       <div class="plan-meta"><span>기간 ${period}</span><span class="meta-separator" aria-hidden="true">·</span><span>예상 시간 ${minutes}</span></div>
       <div class="success-note"><span class="field-label">성공 기준</span><p>${emptyText(p.success)}</p></div>
-      <div class="task-preview"><div class="task-preview-head"><strong>할 일</strong><span>DO · ${tasks.filter(t=>t.planId===p.id).length}개</span></div><div class="preview-items">${tasks.filter(t=>t.planId===p.id).slice(0,4).map(t=>`<div class="preview-item">${t.done?'☑':'□'} ${esc(t.title)}</div>`).join('')||'<p>아직 등록한 할 일이 없어요.</p>'}</div></div>
+      <div class="task-preview"><div class="task-preview-head"><strong>할 일</strong><span>DO · ${tasks.filter(t=>t.planId===p.id&&taskInPeriod(t)).length}개</span></div><div class="preview-items">${tasks.filter(t=>t.planId===p.id&&taskInPeriod(t)).slice(0,4).map(t=>`<div class="preview-item">${t.done?'☑':'□'} ${esc(t.title)}</div>`).join('')||'<p>아직 등록한 할 일이 없어요.</p>'}</div></div>
       <div class="actions"><button class="secondary" data-action="edit" data-id="${esc(p.id)}">✎ 계획 수정</button><button class="ghost" data-action="history" data-id="${esc(p.id)}">◷ 수정 이력 (${(p.revisions||[]).length})</button></div>
     </article>`;
   }).join(''):'<div class="empty">계획이 아직 없어요. 새 계획을 만들어보세요.</div>';
@@ -96,7 +96,7 @@ function renderTasks(){
  renderPlanPreviews();
 }
 function renderPlanPreviews(){document.querySelectorAll('.plan').forEach((card,i)=>{
- const p=plans.filter(planVisible)[i];if(!p)return;const list=tasks.filter(t=>t.planId===p.id).sort((a,b)=>sortTasks(a,b,'priority-desc'));
+ const p=plans.filter(planVisible)[i];if(!p)return;const list=tasks.filter(t=>t.planId===p.id&&taskInPeriod(t)).sort((a,b)=>sortTasks(a,b,'priority-desc'));
  card.querySelector('.task-preview-head span').textContent=`DO · ${list.length}개`;
  card.querySelector('.preview-items').innerHTML=list.length?list.slice(0,4).map(t=>`<div class="preview-item ${taskDone(t)?'done':''}">${taskDone(t)?'☑':'□'} ${esc(t.title)}</div>`).join('')+(list.length>4?`<p>외 ${list.length-4}개</p>`:''):'<p>아직 등록한 할 일이 없어요.</p>';
  });}
