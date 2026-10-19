@@ -1,6 +1,7 @@
 const URL=process.env.SUPABASE_URL;
 const ANON=process.env.SUPABASE_ANON_KEY;
 const COOKIE='pds_access',REFRESH='pds_refresh';
+function sameOrigin(req){const host=req.headers['x-forwarded-host']||req.headers.host;const origin=req.headers.origin;return Boolean(host&&origin&&(origin===`https://${host}`||(process.env.NODE_ENV!=='production'&&origin===`http://${host}`)));}
 const secure=process.env.NODE_ENV==='production'?'; Secure':'';
 function cookie(name,value,maxAge){return `${name}=${encodeURIComponent(value)}; HttpOnly; SameSite=Lax; Path=/api; Max-Age=${maxAge}${secure}`;}
 function clear(res){res.setHeader('Set-Cookie',[cookie(COOKIE,'',0),cookie(REFRESH,'',0)]);}
@@ -27,8 +28,9 @@ module.exports=async function handler(req,res){
    return user?res.status(200).json({user:{id:user.id,email:user.email}}):res.status(401).json({error:'not_authenticated'});
   }
   if(req.method!=='POST'){res.setHeader('Allow','GET, POST');return res.status(405).end();}
+  if(!sameOrigin(req))return res.status(403).json({error:'invalid_origin'});
   const b=typeof req.body==='string'?JSON.parse(req.body):req.body||{};
-  if(b.action==='logout'){clear(res);return res.status(200).json({ok:true});}
+  if(b.action==='logout'){try{const c=cookies(req);if(c[COOKIE])await fetch(`${URL}/auth/v1/logout`,{method:'POST',headers:{apikey:ANON,Authorization:`Bearer ${c[COOKIE]}`}});}catch{}clear(res);return res.status(200).json({ok:true});}
   if(!['login','signup'].includes(b.action))return res.status(400).json({error:'invalid_action'});
   if(typeof b.email!=='string'||typeof b.password!=='string'||b.email.length>254||b.password.length<8||b.password.length>128)return res.status(400).json({error:'invalid_credentials_format'});
   const r=await auth(b.action==='signup'?'signup':'token?grant_type=password',{email:b.email.trim(),password:b.password});
